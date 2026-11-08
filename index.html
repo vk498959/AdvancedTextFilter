@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Playground: Find, Replace & Extract</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --border: #334155;
+            --highlight: #fef08a;
+            --highlight-text: #713f12;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input[type="text"], textarea {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-color);
+            padding: 0.75rem;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--primary);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: monospace;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .replace-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .replace-row input {
+            flex: 1;
+        }
+
+        .output-container, .highlighted-box {
+            position: relative;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            min-height: 100px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        mark {
+            background-color: var(--highlight);
+            color: var(--highlight-text);
+            border-radius: 2px;
+            padding: 0 2px;
+        }
+
+        .error-text {
+            color: #f87171;
+            font-size: 0.75rem;
+            margin-top: -0.25rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Regex Live Studio</h1>
+
+        <!-- Source Text -->
+        <div class="input-group">
+            <label for="sourceText">Source Text</label>
+            <textarea id="sourceText" placeholder="Enter text to analyze...">Hello world! Contact us at support@example.com or sales@test.org. Visit https://example.com for more info. Phone: 123-456-7890.</textarea>
+        </div>
+
+        <!-- Regex & Replace Inputs -->
+        <div class="grid">
+            <div class="input-group">
+                <label for="regexPattern">Regex Pattern</label>
+                <input type="text" id="regexPattern" placeholder="e.g., [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" value="[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}">
+                <span id="regexError" class="error-text"></span>
+            </div>
+            <div class="input-group">
+                <label for="replaceString">Replace With</label>
+                <div class="replace-row">
+                    <input type="text" id="replaceString" placeholder="Replacement string..." value="[REDACTED]">
+                    <button id="replaceBtn">Replace</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flags & Actions -->
+        <div class="controls-row">
+            <label class="checkbox-label"><input type="checkbox" id="flagG" checked> Global (g)</label>
+            <label class="checkbox-label"><input type="checkbox" id="flagI" checked> Case Insensitive (i)</label>
+            <label class="checkbox-label"><input type="checkbox" id="flagM"> Multiline (m)</label>
+            <button id="extractBtn">Extract Matches</button>
+        </div>
+
+        <!-- Live Preview / Highlight -->
+        <div class="input-group">
+            <label>Live Select / Highlight Preview</label>
+            <div id="livePreview" class="highlighted-box"></div>
+        </div>
+
+        <!-- Outputs Grid -->
+        <div class="grid">
+            <div class="input-group">
+                <label>Find & Replace Result</label>
+                <div id="replaceOutput" class="output-container">Click "Replace" to apply changes.</div>
+            </div>
+            <div class="input-group">
+                <label>Extracted Matches</label>
+                <div id="extractOutput" class="output-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sourceTextEl = document.getElementById('sourceText');
+        const regexPatternEl = document.getElementById('regexPattern');
+        const replaceStringEl = document.getElementById('replaceString');
+        const flagGEl = document.getElementById('flagG');
+        const flagIEl = document.getElementById('flagI');
+        const flagMEl = document.getElementById('flagM');
+        const extractBtn = document.getElementById('extractBtn');
+        const replaceBtn = document.getElementById('replaceBtn');
+        
+        const livePreviewEl = document.getElementById('livePreview');
+        const replaceOutputEl = document.getElementById('replaceOutput');
+        const extractOutputEl = document.getElementById('extractOutput');
+        const regexErrorEl = document.getElementById('regexError');
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        function getRegExp() {
+            let flags = '';
+            if (flagGEl.checked) flags += 'g';
+            if (flagIEl.checked) flags += 'i';
+            if (flagMEl.checked) flags += 'm';
+
+            try {
+                regexErrorEl.textContent = '';
+                return new RegExp(regexPatternEl.value, flags);
+            } catch (e) {
+                regexErrorEl.textContent = e.message;
+                return null;
+            }
+        }
+
+        function updateRegexApp() {
+            const text = sourceTextEl.value;
+            const regex = getRegExp();
+
+            if (!regex || !text) {
+                livePreviewEl.textContent = text;
+                extractOutputEl.textContent = '';
+                return;
+            }
+
+            // 1. Live Select / Highlight
+            try {
+                if (regex.global) {
+                    regex.lastIndex = 0;
+                    let matches = [...text.matchAll(regex)];
+                    if (matches.length === 0) {
+                        livePreviewEl.textContent = text;
+                    } else {
+                        let cursor = 0;
+                        let resultParts = [];
+                        for (let m of matches) {
+                            let matchStr = m[0];
+                            let idx = m.index;
+                            if (matchStr.length === 0) continue;
+                            
+                            resultParts.push(escapeHTML(text.slice(cursor, idx)));
+                            resultParts.push(`<mark>${escapeHTML(matchStr)}</mark>`);
+                            cursor = idx + matchStr.length;
+                        }
+                        resultParts.push(escapeHTML(text.slice(cursor)));
+                        livePreviewEl.innerHTML = resultParts.join('');
+                    }
+                } else {
+                    let match = text.match(regex);
+                    if (match && match[0].length > 0) {
+                        let idx = match.index;
+                        let matchedStr = match[0];
+                        livePreviewEl.innerHTML = escapeHTML(text.slice(0, idx)) + 
+                                                   `<mark>${escapeHTML(matchedStr)}</mark>` + 
+                                                   escapeHTML(text.slice(idx + matchedStr.length));
+                    } else {
+                        livePreviewEl.textContent = text;
+                    }
+                }
+            } catch (err) {
+                livePreviewEl.textContent = text;
+            }
+        }
+
+        function executeReplace() {
+            const text = sourceTextEl.value;
+            const regex = getRegExp();
+
+            if (!regex || !text) {
+                replaceOutputEl.textContent = text;
+                return;
+            }
+
+            try {
+                const replacedText = text.replace(regex, replaceStringEl.value);
+                replaceOutputEl.textContent = replacedText;
+            } catch (err) {
+                replaceOutputEl.textContent = "Error in replacement.";
+            }
+        }
+
+        function extractMatches() {
+            const text = sourceTextEl.value;
+            const regex = getRegExp();
+
+            if (!regex || !text) {
+                extractOutputEl.textContent = '';
+                return;
+            }
+
+            try {
+                let extractRegex = regex;
+                if (!extractRegex.global) {
+                    extractRegex = new RegExp(regex.source, regex.flags + 'g');
+                }
+
+                const matches = [...text.matchAll(extractRegex)];
+                if (matches.length > 0) {
+                    const results = matches.map((m, i) => `${i + 1}: ${m[0]}`);
+                    extractOutputEl.textContent = results.join('\n');
+                } else {
+                    extractOutputEl.textContent = 'No matches found.';
+                }
+            } catch (err) {
+                extractOutputEl.textContent = 'Error extracting matches.';
+            }
+        }
+
+        // Event Listeners for Live Updates (excluding find & replace text inputs)
+        sourceTextEl.addEventListener('input', updateRegexApp);
+        regexPatternEl.addEventListener('input', updateRegexApp);
+        flagGEl.addEventListener('change', updateRegexApp);
+        flagIEl.addEventListener('change', updateRegexApp);
+        flagMEl.addEventListener('change', updateRegexApp);
+
+        // Explicit button triggers
+        replaceBtn.addEventListener('click', executeReplace);
+        extractBtn.addEventListener('click', extractMatches);
+
+        // Initial run
+        updateRegexApp();
+    </script>
+</body>
+</html>
